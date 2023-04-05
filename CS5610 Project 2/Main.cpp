@@ -38,22 +38,18 @@ void mouseButtonTracker(int button, int state, int x, int y);
 void mouseClickDrag(int x, int y);
 void specialInput(int key, int x, int y);
 void idleCallback();
-void createScenePlane(GLuint& planeVao);
-void setRotationAndDistance(float& xRot, float& yRot, float& zRot, float& distance);
+void createScenePlane(GLuint& planeVao, int size);
+void setRotationAndDistance(float& xRot, float& yRot, float& zRot);
 float DEG2RAD(float degrees);
+float RAD2DEG(float radians);
 
-bool leftMouse, rightMouse, spacebarToggle;
-bool altMouseDrag;
-bool useTesselation;
+bool leftMouse, spacebarToggle;
+bool walkForward, walkBack, strafeLeft, strafeRight;
 int mouseX, mouseY;
-unsigned short int tessLevel;
 int windowWidth, windowHeight;
-GLuint teapotPlaneVao;
-GLuint triangulationVao;
+GLuint terrainVao;
 cy::GLSLProgram planeShaders;
-cy::GLSLProgram triangulationShaders;
-cyGLTexture2D normTex;
-cyGLTexture2D dispTex;
+cy::GLSLProgram wireMeshShaders;
 
 
 int main(int argc, char* argv[])
@@ -64,12 +60,10 @@ int main(int argc, char* argv[])
     * Initializations
     *
     **/
-    leftMouse = false; rightMouse = false;
+    leftMouse = false;
     spacebarToggle = false;
-    altMouseDrag = false;
-    useTesselation = false;
     mouseX = 0; mouseY = 0;
-    tessLevel = 1;
+    int mapSize = 10000;    // this sets the side length of the terrain to be generated
 
     // if there is not a png normal map then exit - simple check
     if (argc < 2) { exit(0); }
@@ -112,42 +106,7 @@ int main(int argc, char* argv[])
 
     
     // define all objects to be rendered and their textures
-    createScenePlane(teapotPlaneVao);
-    createScenePlane(triangulationVao);
-
-    // intialize textures
-    unsigned int width = 0; unsigned int height = 0;
-    std::vector<unsigned char> normTexture;
-    std::cout << argv[1] << std::endl;
-    std::string filename = argv[1];
-
-    unsigned error = lodepng::decode(normTexture, width, height, filename);
-
-    // create normal texture buffer now - load the normal map as a texture
-    normTex.Initialize();
-    normTex.SetImage(&normTexture[0], 4, width, height);
-    normTex.BuildMipmaps();
-    normTex.Bind(0);
-
-    if (argc > 2)
-    {
-        std::cout << "Using tessellation shaders." << std::endl;
-        // intialize textures
-        unsigned int width = 0; unsigned int height = 0;
-        std::vector<unsigned char> dispTexture;
-        std::cout << argv[2] << std::endl;
-        std::string filename = argv[2];
-
-        unsigned error = lodepng::decode(dispTexture, width, height, filename);
-        // create displacement texture buffer now - load the depth map as a texture
-        dispTex.Initialize();
-        dispTex.SetImage(&dispTexture[0], 4, width, height);
-        dispTex.BuildMipmaps();
-        dispTex.Bind(0);
-
-        // since a displacement texture was found we will also use tesselation shaders
-        useTesselation = true;
-    }
+    createScenePlane(terrainVao, mapSize);
 
     // useTesselation = false;
     /**
@@ -156,30 +115,8 @@ int main(int argc, char* argv[])
     * 
     **/
     // initialize CyGL
-    
-    if (useTesselation)
-    {
-        planeShaders.BuildFiles("Shaders\\passthrough.vert",
-                                "Shaders\\shader.frag",
-                                (const char*)nullptr,
-                                "Shaders\\shader.tessc",
-                                "Shaders\\shader.tesse"
-                                );
-        triangulationShaders.BuildFiles("Shaders\\passthrough.vert",
-                                        "Shaders\\SimpleTexture.frag",
-                                        "Shaders\\wire.geom",
-                                        "Shaders\\shader.tessc",
-                                        "Shaders\\shader.tesse"
-                                        );
-    }
-    else
-    {
         planeShaders.BuildFiles("Shaders\\shader.vert", "Shaders\\shader.frag");
-        triangulationShaders.BuildFiles("Shaders\\Passthrough.vert", "Shaders\\SimpleTexture.frag", "Shaders\\wire.geom");
-    }
-    
-    // specify patches for tesselations
-    glPatchParameteri(GL_PATCH_VERTICES, 3);
+        wireMeshShaders.BuildFiles("Shaders\\Passthrough.vert", "Shaders\\SimpleTexture.frag", "Shaders\\wire.geom");
 
     // clear scene
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -215,31 +152,19 @@ void drawNewFrame()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // render plane under argument object (also used for testing as a plane to render depth map to)
-    glBindVertexArray(teapotPlaneVao);
-    planeShaders.Bind();
-    if (useTesselation)
-    {
-        glDrawArrays(GL_PATCHES, 0, 6);
-    }
-    else
-    {
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+
+    glBindVertexArray(terrainVao);
 
     if (spacebarToggle)
     {
         // draw triangulation plane
-        glBindVertexArray(teapotPlaneVao);
-        triangulationShaders.Bind();
-        if (useTesselation)
-        {
-            glDrawArrays(GL_PATCHES, 0, 6);
-        }
-        else
-        {
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
+        wireMeshShaders.Bind();
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
+
+    // draw plane normally
+    planeShaders.Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glutSwapBuffers();
     return;
@@ -259,13 +184,29 @@ void drawNewFrame()
 void keyboardInterrupt(unsigned char key, int x, int y)
 {
     switch (key) {
-    case 27:
+    case 27:    // escape key
         std::cout << "User pressed escape key.\n";
         glutLeaveMainLoop();
         break;
-    case 32:
+    case 32:    // spacebar (toggles wire mesh view)
         std::cout << "User pressed spacebar.\n";
         spacebarToggle = !spacebarToggle;
+        break;
+    case 87:    // W
+    case 119:
+        std::cout << "W\n";
+        break;
+    case 65:    // A
+    case 97:
+        std::cout << "A\n";
+        break;
+    case 83:    // S
+    case 115:
+        std::cout << "S\n";
+        break;
+    case 68:    // D
+    case 100:
+        std::cout << "D\n";
         break;
     }
     return;
@@ -284,18 +225,13 @@ void keyboardInterrupt(unsigned char key, int x, int y)
 **/
 void mouseButtonTracker(int button, int state, int x, int y)
 {
-    // check for alt button pressed while mouse is moving
-    if (glutGetModifiers() == GLUT_ACTIVE_ALT)
-    {
-        altMouseDrag = !state;
-    }
 
     switch (button) {
     case 0:
         leftMouse = !state;
         break;
     case 2:
-         rightMouse = !state;
+         // this indicates right mouse button was pressed
         break;
     }
     return;
@@ -316,7 +252,6 @@ void mouseClickDrag(int x, int y)
 {
     mouseX = x;
     mouseY = y;
-    // std::cout << "X: " << x << " Y: " << y << "\n";
     return;
 }
 
@@ -331,12 +266,10 @@ void specialInput(int key, int x, int y)
     {
     case GLUT_KEY_LEFT:
         // by casting to unsigned char first we clamp tessLevel between 0 and 255
-        tessLevel = cy::Clamp((int)(--tessLevel), 1, maxTesselation);
-        std::cout << "Decreased tesselation level to: " << tessLevel << std::endl;
+        // left arrow key was pressed
         break;
     case GLUT_KEY_RIGHT:
-        tessLevel = tessLevel = cy::Clamp((int)(++tessLevel), 1, maxTesselation);
-        std::cout << "Increased tesselation level to: " << tessLevel << std::endl;
+        // right arrow key was pressed
         break;
     }
 }
@@ -348,66 +281,47 @@ void specialInput(int key, int x, int y)
 **/
 void idleCallback()
 {
-    static float yRot = 0;
-    static float xRot = 0;
-    static float zRot = 0;
-    static float distance = 1.0f;
-    static float altYRot = 0;
-    static float altXRot = 0;
-    static float altZRot = 0;
-    static float altDistance = 1.0f;
+    // static initializations
+    static float yRot = 0.0f;
+    static float xRot = 0.0f;
+    static float zRot = 0.0f;
 
-    // check if the alt button is pressed and call functions accordingly
-    if (altMouseDrag)
-    {
-        setRotationAndDistance(altXRot, altYRot, altZRot, altDistance);
-    }
-    else
-    {
-        setRotationAndDistance(xRot, yRot, zRot, distance);
-    }
+    setRotationAndDistance(xRot, yRot, zRot);
 
+    //cy::Matrix3f rotMatrix = cy::Matrix3f::RotationXYZ(yRot, xRot, zRot);
+    cy::Matrix4f trans = cy::Matrix4f::Translation(cy::Vec3f(0.0f, 0.0f, 0.0f));
+    // define the scale of the plane to fit the size of the current scene objects
+    cy::Matrix4f planeScale = cy::Matrix4f::Scale(cy::Vec3f(1.0f, 1.0f, 1.0f));
+    cy::Matrix4f planeModel = planeScale * trans;
+    cy::Vec3f viewPos = cy::Vec3f(0.0f, 3.0f, 0.0f);
+    // define where to look at
+    // source: https://learnopengl.com/Getting-started/Camera
+    cy::Vec3f direction;
+    direction.x = cos(xRot) * cos(yRot);
+    direction.y = sin(yRot);
+    direction.z = sin(xRot) * cos(yRot);
+    cy::Vec3f cameraFront = Normalize(direction);
 
+    cy::Matrix4f view = cy::Matrix4f::View(viewPos, viewPos+cameraFront, cy::Vec3f(0.0f, 1.0f, 0.0f));
+    cy::Matrix4f projMatrix = cy::Matrix4f::Perspective(DEG2RAD(90), float(windowWidth) / float(windowHeight), 0.1f, 1000.0f);
 
-    // std::cout << "yRot: " << yRot << "\n";
-    cy::Matrix3f rotMatrix = cy::Matrix3f::RotationXYZ(-xRot, -yRot, zRot);
-    cy::Matrix4f scaleMatrix = cy::Matrix4f::Scale(cy::Vec3f(distance, distance, distance));
-    // for teapot
-    cy::Matrix4f trans = cy::Matrix4f::Translation(cy::Vec3f(0.0f, -5.5f, 0.0f));
-    // for teapot
-    // cy::Matrix4f trans = cy::Matrix4f::Translation(cy::Vec3f(0.0f, 0.0f, 0.0f));
-    cy::Vec3f viewPos = (rotMatrix * cy::Vec3f(0.0f, 0.0f, 100.0f)) * distance;
-    cy::Matrix4f view = cy::Matrix4f::View(viewPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
-    cy::Matrix4f projMatrix = cy::Matrix4f::Perspective(DEG2RAD(40), float(windowWidth) / float(windowHeight), 0.1f, 1000.0f);
+    // translation matrix inteded to be used to prevent z-fighting between the actual plane and it's wire mesh
+    cy::Matrix4f VerticalTrans = cy::Matrix4f::Translation(cy::Vec3f(0.0f, 0.1f, 0.0f));
 
-    cy::Vec3f lightPos = cy::Vec3f(0.0f, 100.0f, 0.0f);
-    
-    // rotate the plane from vertical to horizontal
-    cy::Matrix3f planeRotation = cy::Matrix3f::RotationXYZ(DEG2RAD(90.0f), 0.0f, 0.0f);
-    // move the plane down to beneath the main scen object (usually a teapot)
-    cy::Matrix4f planeTranslation = cy::Matrix4f::Translation(cy::Vec3f(0.0f, -10.0f, 0.0f));
-    // define the scale of the teapot to fit the size of the current scene objects
-    cy::Matrix4f planeScale = cy::Matrix4f::Scale(cy::Vec3f(0.3f, 0.3f, 0.3f));
-    
-    planeShaders["vModel"] = planeScale;
-    planeShaders["model"] = planeScale;
+    cy::Vec3f lightPos = cy::Vec3f(0.0f, 100.0f, 20.0f);
+
+    planeShaders["viewPos"] = viewPos;
+    planeShaders["model"] = planeModel;
     planeShaders["view"] = view;
     planeShaders["projection"] = projMatrix;
     planeShaders["lightPos"] = lightPos;
-    planeShaders["camPos"] = viewPos;
 
-    // define matrix to move the plane slightly forward
-    cy::Matrix4f bringForward = cy::Matrix4f::Translation(cy::Vec3f(0.0f, 0.0f, 0.1f));
-    triangulationShaders["vModel"] = bringForward * planeScale;
-    triangulationShaders["model"] = bringForward * planeScale;
-    triangulationShaders["view"] = view;
-    triangulationShaders["projection"] = projMatrix;
+    wireMeshShaders["viewPos"] = viewPos;
+    wireMeshShaders["model"] = VerticalTrans * planeModel;
+    wireMeshShaders["view"] = view;
+    wireMeshShaders["projection"] = projMatrix;
+    wireMeshShaders["lightPos"] = lightPos;
 
-    if (useTesselation)
-    {
-        planeShaders["tessLevel"] = (float)tessLevel;
-        triangulationShaders["tessLevel"] = (float)tessLevel;
-    }
 
     // Tell GLUT to redraw
     glutPostRedisplay();
@@ -450,7 +364,7 @@ void createOpenGLWindow(int width, int height)
 /// <summary>
 /// Readies the linked Vao to be rendered as a plane in the scene
 /// </summary>
-void createScenePlane(GLuint& planeVao)
+void createScenePlane(GLuint& planeVao, int size)
 {
     GLuint planeVbo;
     GLuint planeNBuffer;
@@ -459,23 +373,23 @@ void createScenePlane(GLuint& planeVao)
 
     // define plane positioning
     float planeVert[] = {
-        100.0,  100.0, 0.0,
-       -100.0,  100.0, 0.0,
-        100.0, -100.0, 0.0,
-       -100.0,  100.0, 0.0,
-       -100.0, -100.0, 0.0,
-        100.0, -100.0, 0.0
+        100.0, 0.0,  100.0,
+       -100.0, 0.0,  100.0,
+        100.0, 0.0, -100.0,
+       -100.0, 0.0,  100.0,
+       -100.0, 0.0, -100.0,
+        100.0, 0.0, -100.0,
     };
 
     // define plane normals
     float planeNorms[] = {
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0
     };
 
     // define plane faces
@@ -529,7 +443,7 @@ void createScenePlane(GLuint& planeVao)
 * Set the x, y, and z rotation values given based on mouse location.
 * 
 **/
-void setRotationAndDistance(float& xRot, float& yRot, float& zRot, float& distance)
+void setRotationAndDistance(float& xRot, float& yRot, float& zRot)
 {
     static int prevMouseX = mouseX;
     static int prevMouseY = mouseY;
@@ -550,24 +464,18 @@ void setRotationAndDistance(float& xRot, float& yRot, float& zRot, float& distan
         float yDelt = float(mouseY - prevMouseY) / (0.2 * windowHeight);
         float xDelt = float(mouseX - prevMouseX) / (0.2 * windowWidth);
         // dont ask me why these have to be flipped, but if you know let me know
-        xRot += yDelt;
-        yRot += xDelt;
+        xRot += xDelt;
+        yRot -= yDelt;
         // zRot -= float((mouseX - prevMouseX) + (mouseY - prevMouseY)) / 4.0f;
-    }
-    else if (rightMouse)
-    {
-        // calculate distance of mouse moved (scale it so that it is easy to use)
-        // clamp distance to be above zero or else it appears to start coming closer when it should be moving away
-        distance = std::max(0.0f, distance + float((mouseX - prevMouseX) + (mouseY - prevMouseY)) / 500.0f);
-        // std::cout << "rightMouse drag.\nChange in distance: " << distance << "\n";
     }
 
     prevMouseY = mouseY;
     prevMouseX = mouseX;
 
     // clean up rotation values
-    xRot = cy::Clamp(xRot, DEG2RAD(-89.9f), DEG2RAD(89.9f));
-    yRot = fmod(yRot, DEG2RAD(360.0f));
+    // std::cout << "xRot: " << RAD2DEG(xRot) << "\tyRot: " << RAD2DEG(yRot) << "\tzRot: " << RAD2DEG(zRot) << std::endl;
+    xRot = fmod(xRot, DEG2RAD(360.0f));
+    yRot = cy::Clamp(yRot, DEG2RAD(-90.0f), DEG2RAD(90.0f));
     zRot = fmod(zRot, DEG2RAD(360.0f));
 }
 
@@ -580,4 +488,15 @@ void setRotationAndDistance(float& xRot, float& yRot, float& zRot, float& distan
 float DEG2RAD(float degrees)
 {
     return degrees * (M_PI / 180.0f);
+}
+
+
+/**
+*
+* Converts Radians to Degrees
+*
+**/
+float RAD2DEG(float radians)
+{
+    return (radians * 180.0f) / M_PI;
 }
