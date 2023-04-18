@@ -21,6 +21,9 @@
     <ClCompile Include="GLInitializations.h">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Mesh\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Objects\teapot.obj.txt">
@@ -35,5 +38,10 @@
     <None Include="Shaders\shader.geom" />
     <None Include="Shaders\shader.tessc" />
     <None Include="Shaders\shader.tesse" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Mesh\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

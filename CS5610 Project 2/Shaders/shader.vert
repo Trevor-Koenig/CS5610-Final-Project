@@ -16,6 +16,7 @@ out vec3 reflection;
 out vec3 Normal;
 out vec3 camPos;
 out vec2 texCoord;
+out vec3 modelPos;
 
 void main()
 {
@@ -31,4 +32,5 @@ void main()
 	Normal = normal;
 	texCoord = txc;
 	camPos = viewPos;
+	modelPos = position/10;
 }

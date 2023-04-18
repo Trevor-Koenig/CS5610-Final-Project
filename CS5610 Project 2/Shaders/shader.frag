@@ -6,6 +6,7 @@ in vec3 Normal;
 in vec3 FragPos;
 in vec2 texCoord;
 in vec3 camPos;
+in vec3 modelPos;
 
 layout(location = 0) out vec4 color;
 
@@ -13,7 +14,7 @@ layout(location = 0) out vec4 color;
 // uniform vec3 lightColor;
 uniform vec3 lightPos;
 
-vec4 texColor = vec4(1,0,0,1);
+vec4 texColor = vec4(1, 0, 0, 1);
 vec3 objColor = texColor.rgb;
 float alpha = texColor.a;
 vec3 specColor = vec3(1.0, 0.8, 0.1);

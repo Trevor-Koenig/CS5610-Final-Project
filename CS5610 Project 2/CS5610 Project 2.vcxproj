@@ -139,6 +139,7 @@
   <ItemGroup>
     <ClCompile Include="GLInitializations.h" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Mesh\Mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Objects\teapot.obj.txt" />
@@ -151,6 +152,9 @@
     <None Include="Shaders\shader.tesse" />
     <None Include="Shaders\shader.vert" />
     <None Include="Shaders\SimpleTexture.frag" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Mesh\Mesh.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
