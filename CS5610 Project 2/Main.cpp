@@ -49,6 +49,7 @@ bool leftMouse, GeoMeshToggle;
 float movementSpeed;
 int mouseX, mouseY;
 int windowWidth, windowHeight;
+unsigned short int tessLevel;
 GLuint terrainVao;
 cy::GLSLProgram planeShaders;
 cy::GLSLProgram wireMeshShaders;
@@ -70,6 +71,7 @@ int main(int argc, char* argv[])
 	mouseX = 0; mouseY = 0;
 	int mapSize = 600;    // this sets the side length of the terrain to be generated
 	movementSpeed = 3.0f;
+	tessLevel = 1.0;
 	camPos = cy::Vec3f(0.0f, 200.0f, 0.0f);
 
 	// if there is not a png normal map then exit - simple check
@@ -108,7 +110,7 @@ int main(int argc, char* argv[])
 	glutSpecialFunc(specialInput);
 
 	// OpenGL initializations
-	GLclampf Red = 0.0f, Green = 0.0f, Blue = 0.0f, Alpha = 0.0f; // sourced from: https://youtu.be/6dtqg0r28Yc
+	GLclampf Red = 0.0f, Green = 0.0f, Blue = 1.0f, Alpha = 0.0f; // sourced from: https://youtu.be/6dtqg0r28Yc
 	glClearColor(Red, Green, Blue, Alpha);
 
 
@@ -133,8 +135,21 @@ int main(int argc, char* argv[])
 	*
 	**/
 	// initialize CyGL
-	planeShaders.BuildFiles("Shaders\\shader.vert", "Shaders\\shader.frag");
-	wireMeshShaders.BuildFiles("Shaders\\Passthrough.vert", "Shaders\\SimpleTexture.frag", "Shaders\\wire.geom");
+	planeShaders.BuildFiles("Shaders\\passthrough.vert",
+		"Shaders\\shader.frag",
+		(const char*)nullptr,
+		"Shaders\\shader.tessc",
+		"Shaders\\shader.tesse"
+	);
+	wireMeshShaders.BuildFiles("Shaders\\passthrough.vert",
+		"Shaders\\SimpleTexture.frag",
+		"Shaders\\wire.geom",
+		"Shaders\\shader.tessc",
+		"Shaders\\shader.tesse"
+	);
+
+	// specify patches for tesselations
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
 
 	// clear scene
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -178,12 +193,12 @@ void drawNewFrame()
 	{
 		// draw triangulation plane
 		wireMeshShaders.Bind();
-		glDrawArrays(GL_TRIANGLES, 0, numVerts);
+		glDrawArrays(GL_PATCHES, 0, numVerts);
 	}
 
 	// draw plane normally
 	planeShaders.Bind();
-	glDrawArrays(GL_TRIANGLES, 0, numVerts);
+	glDrawArrays(GL_PATCHES, 0, numVerts);
 
 	// drawPoint(2, 0, 2);
 
@@ -297,16 +312,18 @@ void mouseClickDrag(int x, int y)
 /// </summary>
 void specialInput(int key, int x, int y)
 {
-	int maxTesselation = 32;
+	int maxTesselation = 100;
 
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
 		// by casting to unsigned char first we clamp tessLevel between 0 and 255
-		// left arrow key was pressed
+		tessLevel = cy::Clamp((int)(--tessLevel), 1, maxTesselation);
+		std::cout << "Decreased tesselation level to: " << tessLevel << std::endl;
 		break;
 	case GLUT_KEY_RIGHT:
-		// right arrow key was pressed
+		tessLevel = tessLevel = cy::Clamp((int)(++tessLevel), 1, maxTesselation);
+		std::cout << "Increased tesselation level to: " << tessLevel << std::endl;
 		break;
 	}
 }
@@ -331,7 +348,7 @@ void idleCallback()
 	// define the scale of the plane to fit the size of the current scene objects
 	cy::Matrix4f planeScale = cy::Matrix4f::Scale(cy::Vec3f(1.0f, 1.0f, 1.0f));
 	cy::Matrix4f planeModel = planeScale * centerMeshOnWorld;
-	
+
 	// define where to look at
 	// source: https://learnopengl.com/Getting-started/Camera
 	cy::Vec3f direction;
@@ -359,6 +376,9 @@ void idleCallback()
 	wireMeshShaders["view"] = view;
 	wireMeshShaders["projection"] = projMatrix;
 	wireMeshShaders["lightPos"] = lightPos;
+
+	planeShaders["tessLevel"] = (float)tessLevel;
+	wireMeshShaders["tessLevel"] = (float)tessLevel;
 
 	// Tell GLUT to redraw
 	glutPostRedisplay();

@@ -7,7 +7,6 @@ layout( triangles, equal_spacing, cw ) in;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform sampler2D gDisplacementMap;
 float gDispFactor = 1;
 
 in vec3 WorldPos_ES_in[];

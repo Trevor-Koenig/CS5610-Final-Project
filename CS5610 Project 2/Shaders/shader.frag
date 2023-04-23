@@ -2,21 +2,23 @@
 
 // shader inspored from: https://community.khronos.org/t/adding-normals-into-fragment-shader/73506
 
-in vec3 Normal;
 in vec3 FragPos;
-in vec2 texCoord;
-in vec3 camPos;
-in vec3 modelPos;
+in vec2 TexCoord_FS_in;
+in vec3 Normal_FS_in;
+in vec3 WorldPos_FS_in;
 
 layout(location = 0) out vec4 color;
+
+// define a vector which translates texture coordinates to vertex space
+vec2 normCoord = vec2(TexCoord_FS_in.x, TexCoord_FS_in.y);
 
 // uniform vec3 objColor;
 // uniform vec3 lightColor;
 uniform vec3 lightPos;
+uniform vec3 camPos;
 
-vec4 texColor = vec4(1, 0, 0, 1);
-vec3 objColor = texColor.rgb;
-float alpha = texColor.a;
+vec3 objColor = vec3(1.0f);
+float alpha = 1.0f;
 vec3 specColor = vec3(1.0, 0.8, 0.1);
 vec3 lightColor = vec3(1.0, 1.0, 1.0);
 float lightPower = 5.0;
@@ -36,7 +38,7 @@ void main()
 	vec3 ambient = ambientStrength * lightColor;
 
 	// Diffuse 
-	vec3 norm = normalize(Normal);
+	vec3 norm = Normal_FS_in;
 	float diff = max(dot(norm, lightDir), 0.0);
 	vec3 diffuse = diff * lightColor;
 
@@ -54,6 +56,9 @@ void main()
 	vec3 result = (ambient + diffuse) * objColor  + specular;
 	color = vec4(result, alpha);
 
-	// testing colors
-	// color = vec4(norm, alpha);
+	// debugging
+	//color = vec4(WorldPos_FS_in, alpha);
+	// color = vec4(Normal_FS_in, alpha);
+	// color = vec4(TexCoord_FS_in, 0, alpha);
+	// color = vec4(normal, 0.0);
 }

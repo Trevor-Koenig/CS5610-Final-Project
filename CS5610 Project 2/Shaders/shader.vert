@@ -4,7 +4,8 @@
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
-layout (location = 2) in vec2 txc;
+layout (location = 2) in vec4 color;
+layout (location = 3) in vec2 txc;
 
 uniform vec3 viewPos;
 uniform mat4 model;
@@ -14,6 +15,7 @@ uniform mat4 projection;
 out vec3 FragPos;
 out vec3 reflection;
 out vec3 Normal;
+out vec4 Color;
 out vec3 camPos;
 out vec2 texCoord;
 out vec3 modelPos;
@@ -22,7 +24,7 @@ void main()
 {
 	// calculate positions
 	vec4 pos = projection * view * model * vec4(position, 1.0f);
-	vec4 norm = normalize(model * vec4(normal, 0.005f));
+	vec4 norm = normalize(model * vec4(normal, 1.0f));
 	gl_Position = pos;
 	// set other values
 	FragPos = vec3(view * model * vec4(position, 1.0f));
@@ -32,5 +34,6 @@ void main()
 	Normal = normal;
 	texCoord = txc;
 	camPos = viewPos;
-	modelPos = position/10;
+	modelPos = position;
+	Color = color;
 }

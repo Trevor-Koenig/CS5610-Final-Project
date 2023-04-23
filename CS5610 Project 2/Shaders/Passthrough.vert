@@ -1,17 +1,20 @@
-#version 330 core
+// shader from: https://ogldev.org/www/tutorial30/tutorial30.html
 
-// source of shader: https://community.khronos.org/t/adding-normals-into-fragment-shader/73506
+#version 410 core
 
-layout (location = 0) in vec3 position;
-layout (location = 1) in vec3 normal;
-layout (location = 2) in vec2 txc;
+layout (location = 0) in vec3 Position_VS_in;
+layout (location = 2) in vec3 Normal_VS_in;
+layout (location = 3) in vec2 TexCoord_VS_in;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+uniform mat4 vModel;
+
+out vec3 WorldPos_CS_in;
+out vec2 TexCoord_CS_in;
+out vec3 Normal_CS_in;
 
 void main()
 {
-	// calculate positions
-	gl_Position = projection * view * model * vec4(position, 1.0f);
+    WorldPos_CS_in = vec3(vModel * vec4(Position_VS_in, 1.0));
+    TexCoord_CS_in = TexCoord_VS_in;
+    Normal_CS_in = Normal_VS_in;
 }
