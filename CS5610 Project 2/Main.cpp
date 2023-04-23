@@ -68,9 +68,9 @@ int main(int argc, char* argv[])
 	leftMouse = false;
 	GeoMeshToggle = false;
 	mouseX = 0; mouseY = 0;
-	int mapSize = 400;    // this sets the side length of the terrain to be generated
+	int mapSize = 600;    // this sets the side length of the terrain to be generated
 	movementSpeed = 3.0f;
-	camPos = cy::Vec3f(0.0f, 3.0f, 0.0f);
+	camPos = cy::Vec3f(0.0f, 200.0f, 0.0f);
 
 	// if there is not a png normal map then exit - simple check
 	if (argc < 2) { exit(0); }
@@ -341,12 +341,12 @@ void idleCallback()
 	cameraFront = Normalize(direction);
 
 	cy::Matrix4f view = cy::Matrix4f::View(camPos, camPos + cameraFront, cy::Vec3f(0.0f, 1.0f, 0.0f));
-	cy::Matrix4f projMatrix = cy::Matrix4f::Perspective(DEG2RAD(90), float(windowWidth) / float(windowHeight), 0.1f, 1000.0f);
+	cy::Matrix4f projMatrix = cy::Matrix4f::Perspective(DEG2RAD(90), float(windowWidth) / float(windowHeight), 0.1f, 3000.0f);
 
 	// translation matrix inteded to be used to prevent z-fighting between the actual plane and it's wire mesh
 	cy::Matrix4f VerticalTrans = cy::Matrix4f::Translation(cy::Vec3f(0.0f, 0.1f, 0.0f));
 
-	cy::Vec3f lightPos = cy::Vec3f(0.0f, 100.0f, 20.0f);
+	cy::Vec3f lightPos = cy::Vec3f(0.0f, 1000.0f, 100.0f);
 
 	planeShaders["viewPos"] = camPos;
 	planeShaders["model"] = planeModel;
@@ -523,6 +523,7 @@ Mesh** createSceneTerrain(GLuint& terrainVao, int mapSize)
 {
 	GLuint planeVbo;
 	GLuint planeNBuffer;
+	GLuint colorBuffer;
 	GLuint planeEBuffer;
 	GLuint planeTxc;
 
@@ -540,11 +541,7 @@ Mesh** createSceneTerrain(GLuint& terrainVao, int mapSize)
 	std::vector<cy::Vec3f> terrainVert = terrain.getVertices();
 	std::vector<cy::Vec3f> terrainFaces = terrain.getFaces();
 	std::vector<cy::Vec3f> terrainNorms = terrain.getNorms();
-	float size = terrainVert.size();
-	for (int i = 0; i < size; i++)
-	{
-		terrainNorms.emplace_back(cy::Vec3f(0.0f, 1.0f, 0.0f));
-	}
+	std::vector<cy::Vec4f> terrainColors = terrain.getColors();
 
 	// create plane plane VAO and vbo
 	glGenVertexArrays(1, &terrainVao);
@@ -562,6 +559,13 @@ Mesh** createSceneTerrain(GLuint& terrainVao, int mapSize)
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 	glEnableVertexAttribArray(1);
 
+	// create plane color buffer
+	glGenBuffers(1, &colorBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec4f) * terrainColors.size(), &terrainColors[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	glEnableVertexAttribArray(2);
+
 	// create plane element buffer
 	glGenBuffers(1, &planeEBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planeEBuffer);
@@ -571,8 +575,8 @@ Mesh** createSceneTerrain(GLuint& terrainVao, int mapSize)
 	glGenBuffers(1, &planeTxc);
 	glBindBuffer(GL_ARRAY_BUFFER, planeTxc);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(planeTxcArray), planeTxcArray, GL_STATIC_DRAW);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	glEnableVertexAttribArray(3);
 
 	return NULL;
 }
