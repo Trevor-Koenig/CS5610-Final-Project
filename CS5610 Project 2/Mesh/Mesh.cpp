@@ -81,7 +81,57 @@ void Mesh::generateVertices(unsigned int w, unsigned int h) {
         }
     }
 
+    // Generate Normals
+    normals.reserve(w * h);
+    for (int r = 0; r < h; r++) {
+        // Cols
+        for (int c = 0; c < w; c++) {
+
+            // account for edge normals
+            if (c == 0 || r == 0 || r == h - 1 || c == w-1)
+            {
+                normals.push_back(cy::Vec3f(0.0f, 1.0f, 0.0f));
+                continue;
+            }
+
+            // read neightbor heights using an arbitrary small offset
+            // first vector is position, second is offset
+            float hL = height(cy::Vec2f(c, r) - cy::Vec2f(1.0, 0.0));
+            float hR = height(cy::Vec2f(c, r) + cy::Vec2f(1.0, 0.0));
+            float hD = height(cy::Vec2f(c, r) - cy::Vec2f(0.0, 1.0));
+            float hU = height(cy::Vec2f(c, r) + cy::Vec2f(0.0, 1.0));
+
+            // deduce terrain normal
+            cy::Vec3f N;
+            N.x = hL - hR;
+            N.y = 2.0;
+            N.z = hD - hU;
+            normals.push_back(cy::Normalize(N));
+        }
+    }
+
     // Post-processing code
+    std::vector<cy::Vec3f> newVerts;
+    std::vector<cy::Vec3f> newNorms;
+    int faceCount = faces.size();
+    newVerts.reserve(faceCount);
+    newNorms.reserve(faceCount);
+    for (int i = 0; i < faceCount; i++)
+    {
+        // arrange vertices
+        newVerts.emplace_back(vertices[faces[i][2]]);
+        newVerts.emplace_back(vertices[faces[i][1]]);
+        newVerts.emplace_back(vertices[faces[i][0]]);
+
+        // arrange normals
+        newNorms.emplace_back(normals[faces[i][2]]);
+        newNorms.emplace_back(normals[faces[i][1]]);
+        newNorms.emplace_back(normals[faces[i][0]]);
+    }
+
+    //  udate this field to make it easier to draw arrays and access the ordered list later.
+    vertices = newVerts;
+    normals = newNorms;
 }
 
 /// <summary>
@@ -93,31 +143,12 @@ void Mesh::generateVertices(unsigned int w, unsigned int h) {
 /// <returns>z value indicating the height of the mesh</returns>
 float Mesh::noise_callback(float x, float y)
 {
-    // TODO: replace with heightmap code
-    return 0.0;
+    return rand() % 50;
 }
 
-/// <summary>
-/// Order the given list of vertices according to the faces list in the current mesh.
-/// Throws an exception if there is an error.
-/// Updates the arrayVertices field as well with the 'ordered' Vertices.
-/// </summary>
-/// <param name="vertices">a list of vertices to be reordered</param>
-/// <returns>returns a copy of the changed vertices</returns>
-std::vector<cy::Vec3f> Mesh::orderByFaces(std::vector<cy::Vec3f> verts)
+float Mesh::height(cy::Vec2f loc)
 {
-    std::vector<cy::Vec3f> newVerts;
-    int iters = faces.size();
-    for (int i = 0; i < iters; i++)
-    {
-        newVerts.emplace_back(verts[faces[i][2]]);
-        newVerts.emplace_back(verts[faces[i][1]]);
-        newVerts.emplace_back(verts[faces[i][0]]);
-    }
-
-    //  udate this field to make it easier to draw arrays and access the ordered list later.
-    arrayVertices = newVerts;
-    return newVerts;
+    return vertices[(loc.x * vertex_width) + loc.y].y;
 }
 
 /// <summary>
@@ -128,11 +159,10 @@ std::vector<cy::Vec3f> Mesh::orderByFaces(std::vector<cy::Vec3f> verts)
 std::vector<cy::Vec3f> Mesh::getVertices() { return vertices; }
 
 /// <summary>
-/// Gets the ordered list of vertices.
-/// returns an empty list if orderByFaces is not called first.
+/// Get vector of normals for the mesh
 /// </summary>
-/// <returns></returns>
-std::vector<cy::Vec3f> Mesh::getOrderedVertices() { return arrayVertices; }
+/// <returns>v</returns>
+std::vector<cy::Vec3f> Mesh::getNorms() { return normals; }
 
 /// <summary>
 /// Currently unsupported.

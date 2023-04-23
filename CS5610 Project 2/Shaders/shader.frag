@@ -53,4 +53,7 @@ void main()
 	// calculate color of obj without shadows
 	vec3 result = (ambient + diffuse) * objColor  + specular;
 	color = vec4(result, alpha);
+
+	// testing colors
+	// color = vec4(norm, alpha);
 }

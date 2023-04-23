@@ -45,14 +45,16 @@ float DEG2RAD(float degrees);
 float RAD2DEG(float radians);
 void drawPoint(float x, float y, float z);
 
-bool leftMouse, spacebarToggle;
-bool walkForward, walkBack, strafeLeft, strafeRight;
+bool leftMouse, GeoMeshToggle;
+float movementSpeed;
 int mouseX, mouseY;
 int windowWidth, windowHeight;
 GLuint terrainVao;
 cy::GLSLProgram planeShaders;
 cy::GLSLProgram wireMeshShaders;
 Mesh terrain;
+cy::Vec3f camPos;
+cy::Vec3f cameraFront;
 
 
 int main(int argc, char* argv[])
@@ -64,9 +66,11 @@ int main(int argc, char* argv[])
 	*
 	**/
 	leftMouse = false;
-	spacebarToggle = false;
+	GeoMeshToggle = false;
 	mouseX = 0; mouseY = 0;
 	int mapSize = 400;    // this sets the side length of the terrain to be generated
+	movementSpeed = 3.0f;
+	camPos = cy::Vec3f(0.0f, 3.0f, 0.0f);
 
 	// if there is not a png normal map then exit - simple check
 	if (argc < 2) { exit(0); }
@@ -168,9 +172,9 @@ void drawNewFrame()
 	// render plane under argument object (also used for testing as a plane to render depth map to)
 
 	glBindVertexArray(terrainVao);
-	int numVerts = terrain.getOrderedVertices().size();
+	int numVerts = terrain.getVertices().size();
 
-	if (spacebarToggle)
+	if (GeoMeshToggle)
 	{
 		// draw triangulation plane
 		wireMeshShaders.Bind();
@@ -200,31 +204,47 @@ void drawNewFrame()
 **/
 void keyboardInterrupt(unsigned char key, int x, int y)
 {
+	// used for calculating right and left
+	cy::Vec3f up(0.0f, 1.0f, 0.0f);
+
 	switch (key) {
 	case 27:    // escape key
 		std::cout << "User pressed escape key.\n";
 		glutLeaveMainLoop();
 		break;
-	case 32:    // spacebar (toggles wire mesh view)
-		std::cout << "User pressed spacebar.\n";
-		spacebarToggle = !spacebarToggle;
+	case 32:    // spacebar
+		camPos.y += movementSpeed;
 		break;
 	case 87:    // W
 	case 119:
 		std::cout << "W\n";
+		camPos += (cameraFront * movementSpeed);
 		break;
 	case 65:    // A
 	case 97:
 		std::cout << "A\n";
+		camPos += cy::Normalize(up.Cross(cameraFront)) * movementSpeed;
 		break;
 	case 83:    // S
 	case 115:
 		std::cout << "S\n";
+		camPos -= (cameraFront * movementSpeed);
 		break;
 	case 68:    // D
 	case 100:
 		std::cout << "D\n";
+		// use negative up to get vector pointing right of camera
+		camPos += cy::Normalize((-up).Cross(cameraFront)) * movementSpeed;
 		break;
+	case 71:	// G
+	case 103:
+		std::cout << "User Toggled Wire Mesh\n";
+		GeoMeshToggle = !GeoMeshToggle;
+	}
+	// check shift button which moves player down
+	if (glutGetModifiers() == GLUT_ACTIVE_SHIFT)
+	{
+		camPos.y -= movementSpeed;
 	}
 	return;
 }
@@ -311,16 +331,16 @@ void idleCallback()
 	// define the scale of the plane to fit the size of the current scene objects
 	cy::Matrix4f planeScale = cy::Matrix4f::Scale(cy::Vec3f(1.0f, 1.0f, 1.0f));
 	cy::Matrix4f planeModel = planeScale * centerMeshOnWorld;
-	cy::Vec3f viewPos = cy::Vec3f(0.0f, 3.0f, 0.0f);
+	
 	// define where to look at
 	// source: https://learnopengl.com/Getting-started/Camera
 	cy::Vec3f direction;
 	direction.x = cos(xRot) * cos(yRot);
 	direction.y = sin(yRot);
 	direction.z = sin(xRot) * cos(yRot);
-	cy::Vec3f cameraFront = Normalize(direction);
+	cameraFront = Normalize(direction);
 
-	cy::Matrix4f view = cy::Matrix4f::View(viewPos, viewPos + cameraFront, cy::Vec3f(0.0f, 1.0f, 0.0f));
+	cy::Matrix4f view = cy::Matrix4f::View(camPos, camPos + cameraFront, cy::Vec3f(0.0f, 1.0f, 0.0f));
 	cy::Matrix4f projMatrix = cy::Matrix4f::Perspective(DEG2RAD(90), float(windowWidth) / float(windowHeight), 0.1f, 1000.0f);
 
 	// translation matrix inteded to be used to prevent z-fighting between the actual plane and it's wire mesh
@@ -328,18 +348,17 @@ void idleCallback()
 
 	cy::Vec3f lightPos = cy::Vec3f(0.0f, 100.0f, 20.0f);
 
-	planeShaders["viewPos"] = viewPos;
+	planeShaders["viewPos"] = camPos;
 	planeShaders["model"] = planeModel;
 	planeShaders["view"] = view;
 	planeShaders["projection"] = projMatrix;
 	planeShaders["lightPos"] = lightPos;
 
-	wireMeshShaders["viewPos"] = viewPos;
+	wireMeshShaders["viewPos"] = camPos;
 	wireMeshShaders["model"] = VerticalTrans * planeModel;
 	wireMeshShaders["view"] = view;
 	wireMeshShaders["projection"] = projMatrix;
 	wireMeshShaders["lightPos"] = lightPos;
-
 
 	// Tell GLUT to redraw
 	glutPostRedisplay();
@@ -519,11 +538,9 @@ Mesh** createSceneTerrain(GLuint& terrainVao, int mapSize)
 
 	// INJECTED CODE
 	std::vector<cy::Vec3f> terrainVert = terrain.getVertices();
-	int size = terrainVert.size();
-	terrainVert = terrain.orderByFaces(terrainVert);
 	std::vector<cy::Vec3f> terrainFaces = terrain.getFaces();
-	std::vector<cy::Vec3f> terrainNorms;
-	size = terrainVert.size();
+	std::vector<cy::Vec3f> terrainNorms = terrain.getNorms();
+	float size = terrainVert.size();
 	for (int i = 0; i < size; i++)
 	{
 		terrainNorms.emplace_back(cy::Vec3f(0.0f, 1.0f, 0.0f));
