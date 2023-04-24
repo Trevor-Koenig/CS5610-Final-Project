@@ -3,9 +3,10 @@
 // shader inspored from: https://community.khronos.org/t/adding-normals-into-fragment-shader/73506
 
 in vec3 FragPos;
-in vec2 TexCoord_FS_in;
-in vec3 Normal_FS_in;
 in vec3 WorldPos_FS_in;
+in vec3 Normal_FS_in;
+in vec4 Color_FS_in;
+in vec2 TexCoord_FS_in;
 
 layout(location = 0) out vec4 color;
 
@@ -17,8 +18,8 @@ vec2 normCoord = vec2(TexCoord_FS_in.x, TexCoord_FS_in.y);
 uniform vec3 lightPos;
 uniform vec3 camPos;
 
-vec3 objColor = vec3(1.0f);
-float alpha = 1.0f;
+vec3 objColor = Color_FS_in.rgb;
+float alpha = Color_FS_in.a;
 vec3 specColor = vec3(1.0, 0.8, 0.1);
 vec3 lightColor = vec3(1.0, 1.0, 1.0);
 float lightPower = 5.0;
