@@ -26,8 +26,14 @@ float lightPower = 5.0;
 float shininess = 200.0;
 float shadowEffect = 0.5;
 
+
+
 void main()
 {
+	if (objColor.b == 1.0)
+	{
+		shininess = 1;
+	}
 
 	vec3 lightDir = lightPos - FragPos;
 	float distance = length(lightDir);

@@ -5,6 +5,8 @@
 layout ( vertices = 3 ) out;
 
 uniform float tessLevel;
+uniform mat4 model;
+uniform mat4 view;
 
 // attributes of the input CPs
 in vec3 WorldPos_CS_in[];
@@ -25,6 +27,24 @@ void main()
     Normal_ES_in[gl_InvocationID] = Normal_CS_in[gl_InvocationID];
     Color_ES_in[gl_InvocationID] = Color_CS_in[gl_InvocationID];
     TexCoord_ES_in[gl_InvocationID] = TexCoord_CS_in[gl_InvocationID];
+    
+
+
+    const int MIN_TESS_LEVEL = 4;
+    const int MAX_TESS_LEVEL = 64;
+    const float MIN_DISTANCE = 20;
+    const float MAX_DISTANCE = 800;
+
+	vec4 eyeSpacePos00 = view * model * gl_in[0].gl_Position;
+    vec4 eyeSpacePos01 = view * model * gl_in[1].gl_Position;
+    vec4 eyeSpacePos10 = view * model * gl_in[2].gl_Position;
+
+    // ----------------------------------------------------------------------
+    // Step 3: "distance" from camera scaled between 0 and 1
+    float distance00 = clamp((abs(eyeSpacePos00.z)-MIN_DISTANCE) / (MAX_DISTANCE-MIN_DISTANCE), 0.0, 1.0);
+    float distance01 = clamp((abs(eyeSpacePos01.z)-MIN_DISTANCE) / (MAX_DISTANCE-MIN_DISTANCE), 0.0, 1.0);
+    float distance10 = clamp((abs(eyeSpacePos10.z)-MIN_DISTANCE) / (MAX_DISTANCE-MIN_DISTANCE), 0.0, 1.0);
+
     
 
 	gl_TessLevelOuter[0] = tessLevel;

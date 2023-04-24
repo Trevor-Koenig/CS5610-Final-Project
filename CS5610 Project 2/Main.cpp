@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 	glutSpecialFunc(specialInput);
 
 	// OpenGL initializations
-	GLclampf Red = 0.0f, Green = 0.0f, Blue = 1.0f, Alpha = 0.0f; // sourced from: https://youtu.be/6dtqg0r28Yc
+	GLclampf Red = 0.3f, Green = 0.4f, Blue = 1.0f, Alpha = 0.0f; // sourced from: https://youtu.be/6dtqg0r28Yc
 	glClearColor(Red, Green, Blue, Alpha);
 
 
@@ -229,22 +229,18 @@ void keyboardInterrupt(unsigned char key, int x, int y)
 		break;
 	case 87:    // W
 	case 119:
-		std::cout << "W\n";
 		camPos += (cameraFront * movementSpeed);
 		break;
 	case 65:    // A
 	case 97:
-		std::cout << "A\n";
 		camPos += cy::Normalize(up.Cross(cameraFront)) * movementSpeed;
 		break;
 	case 83:    // S
 	case 115:
-		std::cout << "S\n";
 		camPos -= (cameraFront * movementSpeed);
 		break;
 	case 68:    // D
 	case 100:
-		std::cout << "D\n";
 		// use negative up to get vector pointing right of camera
 		camPos += cy::Normalize((-up).Cross(cameraFront)) * movementSpeed;
 		break;
