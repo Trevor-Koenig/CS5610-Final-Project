@@ -74,9 +74,6 @@ int main(int argc, char* argv[])
 	tessLevel = 1.0;
 	camPos = cy::Vec3f(0.0f, 200.0f, 0.0f);
 
-	// if there is not a png normal map then exit - simple check
-	if (argc < 2) { exit(0); }
-
 	// Initialize FreeGLUT
 	glutInit(&argc, argv);
 	glutInitContextVersion(4, 5);
@@ -410,126 +407,11 @@ void createOpenGLWindow(int width, int height)
 	glutInitWindowSize(width, height);
 	glutInitWindowPosition(100, 50);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-	glutCreateWindow("CS 5610 Project 8 - Tessellation\tTrevor Koenig");
+	glutCreateWindow("CS 5610 Final Project\tTrevor Koenig");
 	glEnable(GL_DEPTH_TEST);
 
 	const char* versionGL = (const char*)glGetString(GL_VERSION);
 	std::cout << "Current OpenGL version: " << versionGL << "\n";
-}
-
-
-/// <summary>
-/// Readies the linked Vao to be rendered as a plane in the scene
-/// </summary>
-void createScenePlane(GLuint& planeVao, int size)
-{
-	GLuint planeVbo;
-	GLuint planeNBuffer;
-	GLuint planeEBuffer;
-	GLuint planeTxc;
-
-	// define plane positioning
-	float planeVert[] = {
-		1, 0, 0,
-		0, 0, 1,
-		0, 0, 0,
-		1, 0, 0,
-		1, 0, 1,
-		0, 0, 1,
-		2, 0, 0,
-		1, 0, 1,
-		1, 0, 0,
-		2, 0, 0,
-		2, 0, 1,
-		1, 0, 1,
-		1, 0, 1,
-		0, 0, 2,
-		0, 0, 1,
-		1, 0, 1,
-		1, 0, 2,
-		0, 0, 2,
-		2, 0, 1,
-		1, 0, 2,
-		1, 0, 1,
-		2, 0, 1,
-		2, 0, 2,
-		1, 0, 2,
-	};
-
-	// define plane normals
-	float planeNorms[] = {
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 1.0, 0.0,
-	};
-
-	// define plane faces
-	int planeFaces[] = {
-		0, 1, 2,
-		3, 4, 5,
-		6, 7, 8,
-		9, 10, 11,
-		12, 13, 14,
-		15, 16, 17,
-		18, 19, 20,
-		21, 22, 23,
-	};
-
-	// define texture coordinates
-	float planeTxcArray[] = {
-		1.0, 1.0,
-		0.0, 1.0,
-		1.0, 0.0,
-		0.0, 1.0,
-		0.0, 0.0,
-		1.0, 0.0
-	};
-
-	// create plane plane VAO and vbo
-	glGenVertexArrays(1, &planeVao);
-	glBindVertexArray(planeVao);
-	glGenBuffers(1, &planeVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, planeVbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(planeVert), planeVert, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-
-	// create plane normal buffer
-	glGenBuffers(1, &planeNBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, planeNBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(planeNorms), planeNorms, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(1);
-
-	// create plane element buffer
-	glGenBuffers(1, &planeEBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planeEBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeFaces), planeFaces, GL_STATIC_DRAW);
-
-	// create texture coordinates buffer
-	glGenBuffers(1, &planeTxc);
-	glBindBuffer(GL_ARRAY_BUFFER, planeTxc);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(planeTxcArray), planeTxcArray, GL_STATIC_DRAW);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(2);
 }
 
 
