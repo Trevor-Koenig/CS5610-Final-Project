@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 	int mapSize = 600;    // this sets the side length of the terrain to be generated
 	movementSpeed = 3.0f;
 	tessLevel = 1.0;
-	camPos = cy::Vec3f(0.0f, 200.0f, 0.0f);
+	camPos = cy::Vec3f(0.0f, 300.0f, 0.0f);
 
 	// Initialize FreeGLUT
 	glutInit(&argc, argv);
