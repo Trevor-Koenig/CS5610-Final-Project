@@ -17,8 +17,10 @@ vec2 normCoord = vec2(TexCoord_FS_in.x, TexCoord_FS_in.y);
 // uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 camPos;
+uniform float tColor;
+uniform float shading;
 
-vec3 objColor = Color_FS_in.rgb;
+vec3 objColor;
 float alpha = Color_FS_in.a;
 vec3 specColor = vec3(1.0, 0.8, 0.1);
 vec3 lightColor = vec3(1.0, 1.0, 1.0);
@@ -30,11 +32,20 @@ float shadowEffect = 0.5;
 
 void main()
 {
+	if (tColor > 0.5) {
+		objColor = Color_FS_in.rgb;
+		// objColor = Normal_FS_in.rgb;
+	}
+	else {
+		objColor = vec3(1);
+	}
+
 	if (objColor.b == 1.0)
 	{
 		shininess = 1;
 	}
 
+	if (shading > 0.5) {
 	vec3 lightDir = lightPos - FragPos;
 	float distance = length(lightDir);
 	distance = distance * distance;
@@ -62,10 +73,14 @@ void main()
 	// calculate color of obj without shadows
 	vec3 result = (ambient + diffuse) * objColor  + specular;
 	color = vec4(result, alpha);
+	}
+	else
+	{
+		color = vec4(objColor, alpha);
+	}
 
 	// debugging
 	//color = vec4(WorldPos_FS_in, alpha);
 	// color = vec4(Normal_FS_in, alpha);
 	// color = vec4(TexCoord_FS_in, 0, alpha);
-	// color = vec4(normal, 0.0);
 }

@@ -38,7 +38,6 @@ void mouseButtonTracker(int button, int state, int x, int y);
 void mouseClickDrag(int x, int y);
 void specialInput(int key, int x, int y);
 void idleCallback();
-void createScenePlane(GLuint& planeVao, int size);
 Mesh** createSceneTerrain(GLuint& terrainVao, int mapSize);
 void setRotationAndDistance(float& xRot, float& yRot, float& zRot);
 float DEG2RAD(float degrees);
@@ -50,6 +49,8 @@ float movementSpeed;
 int mouseX, mouseY;
 int windowWidth, windowHeight;
 unsigned short int tessLevel;
+float tColor;
+float shading;
 GLuint terrainVao;
 cy::GLSLProgram planeShaders;
 cy::GLSLProgram wireMeshShaders;
@@ -68,6 +69,8 @@ int main(int argc, char* argv[])
 	**/
 	leftMouse = false;
 	GeoMeshToggle = false;
+	tColor = false;
+	shading = false;
 	mouseX = 0; mouseY = 0;
 	int mapSize = 600;    // this sets the side length of the terrain to be generated
 	movementSpeed = 3.0f;
@@ -80,8 +83,8 @@ int main(int argc, char* argv[])
 	glutInitContextFlags(GLUT_DEBUG);
 
 	// initalize a new window
-	windowWidth = 1280;
-	windowHeight = 720;
+	windowWidth = 1920;
+	windowHeight = 1080;
 	createOpenGLWindow(windowWidth, windowHeight);
 
 	//initialize glew
@@ -219,7 +222,7 @@ void keyboardInterrupt(unsigned char key, int x, int y)
 	// used for calculating right and left
 	cy::Vec3f up(0.0f, 1.0f, 0.0f);
 
-	switch (key) {
+	switch (tolower(key)) {
 	case 27:    // escape key
 		std::cout << "User pressed escape key.\n";
 		glutLeaveMainLoop();
@@ -227,27 +230,31 @@ void keyboardInterrupt(unsigned char key, int x, int y)
 	case 32:    // spacebar
 		camPos.y += movementSpeed;
 		break;
-	case 87:    // W
-	case 119:
+	case 'w':
 		camPos += (cameraFront * movementSpeed);
 		break;
-	case 65:    // A
-	case 97:
+	case 'a':
 		camPos += cy::Normalize(up.Cross(cameraFront)) * movementSpeed;
 		break;
-	case 83:    // S
-	case 115:
+	case 's':
 		camPos -= (cameraFront * movementSpeed);
 		break;
-	case 68:    // D
-	case 100:
+	case 'd':
 		// use negative up to get vector pointing right of camera
 		camPos += cy::Normalize((-up).Cross(cameraFront)) * movementSpeed;
 		break;
-	case 71:	// G
-	case 103:
+	case 'g':
 		std::cout << "User Toggled Wire Mesh\n";
 		GeoMeshToggle = !GeoMeshToggle;
+		break;
+	case 'o':
+		// turn off color
+		tColor = !tColor;
+		break;
+	case 'p':
+		// turn off blinn-phong shading
+		shading = !shading;
+		break;
 	}
 	// check shift button which moves player down
 	if (glutGetModifiers() == GLUT_ACTIVE_SHIFT)
@@ -373,6 +380,9 @@ void idleCallback()
 	planeShaders["tessLevel"] = (float)tessLevel;
 	wireMeshShaders["tessLevel"] = (float)tessLevel;
 
+	planeShaders["tColor"] = tColor;
+	planeShaders["shading"] = shading;
+
 	// Tell GLUT to redraw
 	glutPostRedisplay();
 }
@@ -401,9 +411,9 @@ void createOpenGLWindow(int width, int height)
 {
 	// Create a window
 	glutInitWindowSize(width, height);
-	glutInitWindowPosition(100, 50);
+	glutInitWindowPosition(0, 0);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-	glutCreateWindow("CS 5610 Final Project\tTrevor Koenig");
+	glutCreateWindow("CS 5610 Final Project        Trevor Koenig");
 	glEnable(GL_DEPTH_TEST);
 
 	const char* versionGL = (const char*)glGetString(GL_VERSION);
@@ -522,11 +532,7 @@ void setRotationAndDistance(float& xRot, float& yRot, float& zRot)
 }
 
 
-/**
-*
-* Converts Degrees to Radians
-*
-**/
+
 float DEG2RAD(float degrees)
 {
 	return degrees * (M_PI / 180.0f);

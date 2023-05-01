@@ -178,7 +178,15 @@ void Mesh::generateVertices(unsigned int w, unsigned int h) {
     vertex_colors = newColors;
 }
 
-
+/// <summary>
+/// 
+/// </summary>
+/// <param name="x"></param>
+/// <param name="y"></param>
+/// <param name="z"></param>
+/// <param name="octaves"></param>
+/// <param name="persistence"></param>
+/// <returns></returns>
 float Mesh::noise_callback(float x, float y, float z, int octaves, double persistence)
 {
     double total = 0;
@@ -198,6 +206,11 @@ float Mesh::noise_callback(float x, float y, float z, int octaves, double persis
     return (total / maxValue);
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="loc"></param>
+/// <returns></returns>
 float Mesh::height(cy::Vec2f loc)
 {
     return vertices[(loc.y * vertex_width) + loc.x].y;
